@@ -1,0 +1,405 @@
+{
+  "name": "Tugas 2 Pertemuan 1 - Implementasi AI Untuk Pemasaran - Salsabila – 0110224031 – Grup 3",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1312,
+        64
+      ],
+      "id": "49525d9d-d103-4bb2-b145-0c18da45484f",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.kie.ai/api/v1/jobs/createTask",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"google/nano-banana\",\n  \"input\": {\n    \"prompt\": \"A futuristic cyberpunk city at night\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -1088,
+        -160
+      ],
+      "id": "55ffd85d-03f7-42f0-b3c1-63c554be6950",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "r3tE3QgzgPYTO6DB",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8b1c3557-4a11-4483-9595-3a85531a88ad",
+              "name": "taskId",
+              "value": "={{ $json.data.taskId }}",
+              "type": "string"
+            },
+            {
+              "id": "716136a1-79b9-4538-a230-1c79022ba341",
+              "name": "prompt",
+              "value": "A futuristic cyberpunk city at night",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -880,
+        32
+      ],
+      "id": "b86e7c68-eb5a-4bfd-9f17-f7f0a4a306da",
+      "name": "Simpan taskId"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -608,
+        240
+      ],
+      "id": "a1e9e461-9bc5-491c-9b6c-5ba17fa69752",
+      "name": "Wait 10 Detik",
+      "webhookId": "8e2e707d-3a16-4634-bf22-a765761247f7"
+    },
+    {
+      "parameters": {
+        "url": "https://api.kie.ai/api/v1/jobs/recordInfo",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "taskId",
+              "value": "={{ $('Simpan taskId').first().json.taskId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -448,
+        32
+      ],
+      "id": "225aa308-e8f7-4203-b6ce-d2e014393a47",
+      "name": "Cek Status",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "r3tE3QgzgPYTO6DB",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2c8db1a7-3aa6-46e1-a4e5-83e07e47fd5e",
+              "leftValue": "={{ $json.data.state }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -224,
+        32
+      ],
+      "id": "fea9f4bd-0965-4cf0-854e-2c19a95302c9",
+      "name": "If Sukses?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "14e9b188-b93a-482d-9b2c-6bc8e434e269",
+              "leftValue": "={{ $('Cek Status').item.json.data.state }}",
+              "rightValue": "fail",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -144,
+        240
+      ],
+      "id": "3819f263-55e8-4548-b36e-0b126b58cb34",
+      "name": "If Gagal?"
+    },
+    {
+      "parameters": {
+        "errorMessage": "={{ 'Pembuatan gambar gagal: ' + ($json.data.failMsg || 'tidak ada pesan') }}"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        48,
+        112
+      ],
+      "id": "0182fa6f-17bf-4571-9f34-cabc4ffda703",
+      "name": "Stop - Gagal"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Batas maksimal polling agar tidak infinite loop\nconst maxAttempt = 30;\n\n// $runIndex = berapa kali node ini sudah berjalan (mulai dari 0)\nconst attempt = $runIndex + 1;\n\nif (attempt >= maxAttempt) {\n  throw new Error(`Batas polling tercapai (${maxAttempt}x). Gambar belum selesai, coba lagi nanti.`);\n}\n\n// Lanjutkan loop\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        128,
+        368
+      ],
+      "id": "3586de83-54df-4952-aae2-c67fd1ae600f",
+      "name": "Batas Percobaan"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Ambil data dari node Cek Status (lewat IF)\nconst data = $input.first().json.data;\nif (!data) {\n  throw new Error('Respons tidak memiliki field \"data\". Cek struktur respons API.');\n}\n\n// 2. resultJson biasanya berupa STRING JSON -> ubah jadi objek\nlet result = data.resultJson;\nif (typeof result === 'string') {\n  try {\n    result = JSON.parse(result);\n  } catch (e) {\n    throw new Error('Gagal membaca resultJson: ' + e.message);\n  }\n}\n\n// 3. Ambil array URL hasil [SESUAIKAN nama field: resultUrls]\nconst urls = result && Array.isArray(result.resultUrls) ? result.resultUrls : [];\n\n// 4. Filter hanya URL valid (diawali http:// atau https://)\nconst validUrls = urls.filter(\n  (u) => typeof u === 'string' && (u.startsWith('http://') || u.startsWith('https://'))\n);\n\n// 5. Error jelas jika tidak ada URL valid\nif (validUrls.length === 0) {\n  throw new Error('Tidak ada URL gambar valid pada hasil. Isi resultUrls: ' + JSON.stringify(urls));\n}\n\n// 6. Kembalikan URL pertama (plus semua URL & prompt untuk caption)\nreturn [{\n  json: {\n    imageUrl: validUrls[0],\n    allUrls: validUrls,\n    prompt: $('Simpan taskId').first().json.prompt\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        -80
+      ],
+      "id": "9c356979-067b-4cf8-8b8f-75b73b495f91",
+      "name": "Parse URL Gambar"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.imageUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        320,
+        96
+      ],
+      "id": "314d5bf8-92e6-4f9e-a462-bebf72ba799c",
+      "name": "Download Gambar"
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "6834395611",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "=Prompt: {{ $('Simpan taskId').first().json.prompt }}"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        544,
+        240
+      ],
+      "id": "b2a57723-006c-43b5-be3e-c8f390b8a882",
+      "name": "Send a photo message",
+      "webhookId": "38e6584f-5d5f-4ba6-963e-74dcc0922f34",
+      "credentials": {
+        "telegramApi": {
+          "id": "LVG7d2ZEqClRCVzM",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Simpan taskId",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simpan taskId": {
+      "main": [
+        [
+          {
+            "node": "Wait 10 Detik",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 10 Detik": {
+      "main": [
+        [
+          {
+            "node": "Cek Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cek Status": {
+      "main": [
+        [
+          {
+            "node": "If Sukses?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Sukses?": {
+      "main": [
+        [
+          {
+            "node": "Parse URL Gambar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If Gagal?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Gagal?": {
+      "main": [
+        [
+          {
+            "node": "Stop - Gagal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Batas Percobaan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Batas Percobaan": {
+      "main": [
+        [
+          {
+            "node": "Wait 10 Detik",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse URL Gambar": {
+      "main": [
+        [
+          {
+            "node": "Download Gambar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Gambar": {
+      "main": [
+        [
+          {
+            "node": "Send a photo message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ce220ee0-a2dc-4cea-b163-a87a5a76952c",
+  "meta": {
+    "instanceId": "dc96f10ae7dc95d3c138575ba243a0a167923dbcb524841d451aadf9135d5fb3"
+  },
+  "nodeGroups": [],
+  "id": "FukUXsVu07r2FqCN",
+  "tags": []
+}
